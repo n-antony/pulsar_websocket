@@ -1,5 +1,8 @@
 #!/bin/bash
-export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+export JAVA_HOME=/opt/render/.parts/opt/openjdk
+export PATH=$JAVA_HOME/bin:$PATH
+java -version  # Verify Java is installed
+
 
 # Ensure Pulsar is downloaded
 if [ ! -d "apache-pulsar-4.0.3" ]; then
