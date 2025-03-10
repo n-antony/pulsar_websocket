@@ -3,6 +3,13 @@
 # Set environment variables
 export JAVA_HOME=$PWD/jdk-17
 export PATH=$JAVA_HOME/bin:$PATH
+# Set Java memory limits (adjust based on testing)
+export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
+
+
+# Start Pulsar in standalone mode with reduced features
+bin/pulsar standalone --no-functions --no-stream-storage
+
 
 # Check if Java is already installed
 if [ ! -d "$JAVA_HOME" ]; then
@@ -25,7 +32,11 @@ cp pulsar-config/standalone.conf apache-pulsar-4.0.3/conf/standalone.conf
 # Start Pulsar
 echo "Starting Pulsar..."
 cd apache-pulsar-4.0.3
-bin/pulsar standalone &
+#bin/pulsar standalone &
+# Set Java memory limits (adjust based on testing)
+export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
+# Start Pulsar in standalone mode with reduced features
+bin/pulsar standalone --no-functions --no-stream-storage
 sleep 10  # Allow Pulsar to initialize
 
 # Start Producer
