@@ -1,4 +1,5 @@
 #!/bin/bash
+export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
 
 # Ensure Pulsar is downloaded
 if [ ! -d "apache-pulsar-4.0.3" ]; then
@@ -18,7 +19,7 @@ sleep 10
 
 # Start the Python producer in the background
 cd /app
-python3 pulsar-producer.py &
+python3 producer.py &
 
 # Keep the container running
 wait
