@@ -35,8 +35,8 @@ java -version
 # Download and extract Pulsar if not already available
 if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
     echo "📥 Downloading and extracting Apache Pulsar..."
-    curl -LO "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
-    tar -xzf apache-pulsar-4.0.3-bin.tar.gz -C /opt/render/project/src/
+    curl -o apache-pulsar.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+    tar -xzf apache-pulsar.tar.gz -C /opt/render/project/src/
     
     # ✅ Ensure correct extracted folder name
     if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
@@ -60,6 +60,13 @@ fi
 echo "🛠️ Pulsar Directory Contents:"
 ls -l /opt/render/project/src/apache-pulsar-4.0.3
 
+# ✅ Check if `bin/pulsar` exists before starting
+if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
+    echo "❌ ERROR: Pulsar binary not found! Listing Pulsar directory contents..."
+    ls -l /opt/render/project/src/apache-pulsar-4.0.3
+    exit 1
+fi
+
 # ✅ Print current working directory before running Pulsar
 echo "📂 Current Working Directory:"
 pwd
@@ -73,15 +80,10 @@ else
     find /opt/render/project/src/apache-pulsar-4.0.3 -print
 fi
 
-# ✅ Check if `bin/pulsar` exists before starting
-if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
-    echo "❌ ERROR: Pulsar binary not found! Exiting."
-    exit 1
-fi
-
 # Start Pulsar in standalone mode
 echo "🚀 Starting Pulsar in standalone mode..."
 cd /opt/render/project/src/apache-pulsar-4.0.3
+ls -l bin  # ✅ Debug: Check if `bin` directory exists
 bin/pulsar standalone --no-stream-storage &
 
 # Wait for Pulsar to fully start
