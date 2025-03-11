@@ -40,27 +40,29 @@ java -version
 cd /opt/render/project/src/
 echo "📂 Moved to project directory: $(pwd)"
 
-# ✅ Move and extract Pulsar correctly
+# ✅ Fix Pulsar Extraction Issue
 if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
-    echo "📥 Downloading and extracting Apache Pulsar..."
-    curl -o /opt/render/project/src/apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
-    
-    # ✅ Extract Pulsar and validate binary presence
+    echo "📥 Downloading Apache Pulsar..."
+    curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+
+    # ✅ Print file size of downloaded Pulsar tar file
+    echo "📂 Pulsar Tar File Size:"
+    ls -lh apache-pulsar-4.0.3-bin.tar.gz
+
     echo "📦 Extracting Pulsar..."
     tar -xzf apache-pulsar-4.0.3-bin.tar.gz
-    
+
     # ✅ Ensure correct folder name
     if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
         mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
     fi
-    
-    # ✅ Verify Pulsar Binary
-    if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
-        echo "❌ ERROR: Pulsar binary NOT found after extraction! Exiting..."
-        exit 1
-    else
-        echo "✅ Pulsar binary found: /opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar"
-    fi
+fi
+
+# ✅ Verify Pulsar Binary Exists After Extraction
+if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
+    echo "❌ ERROR: Pulsar binary is still missing after extraction! Exiting..."
+    ls -l /opt/render/project/src/apache-pulsar-4.0.3
+    exit 1
 fi
 
 # Ensure the conf directory exists
