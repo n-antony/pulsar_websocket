@@ -40,33 +40,35 @@ java -version
 cd /opt/render/project/src/
 echo "📂 Moved to project directory: $(pwd)"
 
-# ✅ **Pulsar Download and Extraction**
-if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
-    echo "📥 Downloading Apache Pulsar..."
-    
-    # Download the Pulsar binary tar file
-    curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+# ✅ **Check if Pulsar directory exists and DELETE IT before re-downloading**
+if [ -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
+    echo "⚠️ Existing Pulsar directory found! Deleting it..."
+    rm -rf /opt/render/project/src/apache-pulsar-4.0.3
+fi
 
-    # ✅ **Print file size of the downloaded Pulsar tar file**
-    echo "📂 Checking Pulsar Tar File Size..."
-    ls -lh apache-pulsar-4.0.3-bin.tar.gz
+# ✅ **Download and Extract Pulsar**
+echo "📥 Downloading Apache Pulsar..."
+curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
 
-    # ✅ **Extract the Pulsar tar file**
-    echo "📦 Extracting Pulsar..."
-    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
+# ✅ **Print file size of the downloaded Pulsar tar file**
+echo "📂 Pulsar Tar File Size:"
+ls -lh apache-pulsar-4.0.3-bin.tar.gz
 
-    # ✅ **Verify extraction by listing files**
-    echo "📂 Contents after extraction:"
-    ls -lh
+# ✅ **Extract the Pulsar tar file**
+echo "📦 Extracting Pulsar..."
+tar -xzf apache-pulsar-4.0.3-bin.tar.gz
 
-    # ✅ **Ensure correct folder renaming**
-    if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
-        mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
-        echo "✅ Pulsar folder renamed to: /opt/render/project/src/apache-pulsar-4.0.3"
-    else
-        echo "❌ ERROR: Pulsar extraction failed. Exiting..."
-        exit 1
-    fi
+# ✅ **Verify extraction by listing files**
+echo "📂 Listing files after Pulsar extraction:"
+ls -lh
+
+# ✅ **Ensure correct folder renaming**
+if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
+    mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
+    echo "✅ Pulsar folder renamed to: /opt/render/project/src/apache-pulsar-4.0.3"
+else
+    echo "❌ ERROR: Pulsar extraction failed. Exiting..."
+    exit 1
 fi
 
 # ✅ **Verify Pulsar Binary Exists**
