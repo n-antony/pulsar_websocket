@@ -83,7 +83,14 @@ if [ -f "pulsar-config/standalone.conf" ]; then
     cp pulsar-config/standalone.conf "$PULSAR_DIR/conf/standalone.conf"
 fi
 
-# ✅ **Modify standalone.conf for WebSocket without TLS**
+# ✅ **Modify standalone.conf to set clusterName**
+if grep -q "clusterName=" "$PULSAR_DIR/conf/standalone.conf"; then
+    sed -i 's/^clusterName=.*/clusterName=standalone-cluster/' "$PULSAR_DIR/conf/standalone.conf"
+else
+    echo "clusterName=standalone-cluster" >> "$PULSAR_DIR/conf/standalone.conf"
+fi
+
+# ✅ **Set WebSocket and Web Service Ports**
 if grep -q "webServicePort=" "$PULSAR_DIR/conf/standalone.conf"; then
     sed -i 's/^webServicePort=.*/webServicePort=8080/' "$PULSAR_DIR/conf/standalone.conf"
 else
