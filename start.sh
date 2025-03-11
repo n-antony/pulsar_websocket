@@ -62,37 +62,39 @@ tar -xzf apache-pulsar-4.0.3-bin.tar.gz
 echo "📂 Listing files after Pulsar extraction:"
 ls -lh
 
-# ✅ **Ensure correct folder renaming**
-if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
-    mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
-    echo "✅ Pulsar folder renamed to: /opt/render/project/src/apache-pulsar-4.0.3"
-else
-    echo "❌ ERROR: Pulsar extraction failed. Exiting..."
-    exit 1
+# ✅ **Check if extraction was successful**
+if [ ! -d "apache-pulsar-4.0.3" ]; then
+    if [ -d "apache-pulsar-4.0.3-bin" ]; then
+        echo "🔄 Renaming extracted folder..."
+        mv apache-pulsar-4.0.3-bin apache-pulsar-4.0.3
+    else
+        echo "❌ ERROR: Pulsar extraction failed. Exiting..."
+        exit 1
+    fi
 fi
 
 # ✅ **Verify Pulsar Binary Exists**
-if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
+if [ ! -f "apache-pulsar-4.0.3/bin/pulsar" ]; then
     echo "❌ ERROR: Pulsar binary is still missing after extraction! Exiting..."
-    ls -l /opt/render/project/src/apache-pulsar-4.0.3
+    ls -l apache-pulsar-4.0.3/bin
     exit 1
 fi
 
 # ✅ **Ensure the conf directory exists**
-if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3/conf" ]; then
+if [ ! -d "apache-pulsar-4.0.3/conf" ]; then
     echo "❌ Pulsar conf directory missing! Creating conf directory..."
-    mkdir -p /opt/render/project/src/apache-pulsar-4.0.3/conf
+    mkdir -p apache-pulsar-4.0.3/conf
 fi
 
 # ✅ **Copy the standalone configuration if available**
-if [ -f "/opt/render/project/src/pulsar-config/standalone.conf" ]; then
+if [ -f "pulsar-config/standalone.conf" ]; then
     echo "⚙️ Updating Pulsar standalone configuration..."
-    cp /opt/render/project/src/pulsar-config/standalone.conf /opt/render/project/src/apache-pulsar-4.0.3/conf/standalone.conf
+    cp pulsar-config/standalone.conf apache-pulsar-4.0.3/conf/standalone.conf
 fi
 
 # ✅ **Debug Pulsar directory**
 echo "🛠️ Pulsar Directory Contents:"
-ls -l /opt/render/project/src/apache-pulsar-4.0.3
+ls -l apache-pulsar-4.0.3
 
 # ✅ **Print current working directory before running Pulsar**
 echo "📂 Current Working Directory:"
@@ -101,15 +103,15 @@ pwd
 # ✅ **Print directory structure before starting Pulsar**
 if command -v tree &> /dev/null; then
     echo "📂 Directory Structure Before Pulsar Start:"
-    tree /opt/render/project/src/apache-pulsar-4.0.3
+    tree apache-pulsar-4.0.3
 else
     echo "📂 (Tree command not installed, listing structure instead)"
-    find /opt/render/project/src/apache-pulsar-4.0.3 -print
+    find apache-pulsar-4.0.3 -print
 fi
 
 # ✅ **Start Pulsar in standalone mode**
 echo "🚀 Starting Pulsar in standalone mode..."
-cd /opt/render/project/src/apache-pulsar-4.0.3
+cd apache-pulsar-4.0.3
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
 # ✅ **Double-check that `bin/pulsar` exists before running**
@@ -130,9 +132,9 @@ cd /opt/render/project/src/
 echo "📂 Moved back to main project directory: $(pwd)"
 
 # ✅ **Start the Pulsar producer script**
-if [ -f "/opt/render/project/src/pulsar-producer.py" ]; then
+if [ -f "pulsar-producer.py" ]; then
     echo "📡 Starting Pulsar Producer..."
-    python3 /opt/render/project/src/pulsar-producer.py &
+    python3 pulsar-producer.py &
 else
     echo "❌ Pulsar Producer script not found!"
 fi
