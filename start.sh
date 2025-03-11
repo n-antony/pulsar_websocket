@@ -11,8 +11,8 @@ export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
 export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
 export PATH="$JAVA_HOME/bin:$PATH"
 
-# Install OpenJDK if not installed
-if ! command -v java &> /dev/null; then
+# Check if Java is already installed
+if [ ! -x "$JAVA_HOME/bin/java" ]; then
     echo "📥 Installing OpenJDK 17..."
     curl -LO "https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz"
     tar -xvzf jdk-17.0.12_linux-x64_bin.tar.gz
@@ -21,10 +21,10 @@ if ! command -v java &> /dev/null; then
     export PATH="$JAVA_HOME/bin:$PATH"
 fi
 
-# Download and extract Pulsar if not already available
+# Ensure Pulsar is downloaded
 if [ ! -d "apache-pulsar-4.0.3" ]; then
     echo "📥 Downloading and extracting Apache Pulsar..."
-    curl -LO "https://www.apache.org/dyn/closer.lua/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz?action=download"
+    curl -LO "https://archive.apache.org/dist/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
     tar xvfz apache-pulsar-4.0.3-bin.tar.gz
 fi
 
@@ -39,10 +39,11 @@ fi
 
 # Start Pulsar in standalone mode
 echo "🚀 Starting Pulsar in standalone mode..."
-bin/pulsar standalone --no-stream-storage &
+bin/pulsar standalone &
 
 # Wait for Pulsar to fully start
-sleep 15
+echo "⏳ Waiting for Pulsar to start..."
+sleep 20  # Ensure Pulsar is running before starting producer
 
 # Move back to the main project directory
 cd ..
