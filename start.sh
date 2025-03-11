@@ -46,15 +46,23 @@ if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
     curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
 
     # ✅ Print file size of downloaded Pulsar tar file
-    echo "📂 Pulsar Tar File Size:"
+    echo "📂 Checking Pulsar Tar File Size..."
     ls -lh apache-pulsar-4.0.3-bin.tar.gz
 
     echo "📦 Extracting Pulsar..."
     tar -xzf apache-pulsar-4.0.3-bin.tar.gz
 
-    # ✅ Ensure correct folder name
+    # ✅ Debug: Check extraction result
+    echo "📂 Contents after extraction:"
+    ls -lh
+
+    # ✅ Ensure correct folder renaming
     if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
         mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
+        echo "✅ Pulsar folder renamed to: /opt/render/project/src/apache-pulsar-4.0.3"
+    else
+        echo "❌ ERROR: Pulsar extraction failed. Exiting..."
+        exit 1
     fi
 fi
 
