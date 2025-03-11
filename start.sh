@@ -33,11 +33,14 @@ echo "🛠️ Java Version:"
 java -version
 
 # Download and extract Pulsar if not already available
-if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3/bin" ]; then
+if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
     echo "📥 Downloading and extracting Apache Pulsar..."
     curl -LO "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
     tar -xzf apache-pulsar-4.0.3-bin.tar.gz -C /opt/render/project/src/
-    mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
+    # ✅ Fix: Ensure correct extracted folder name
+    if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
+        mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
+    fi
 fi
 
 # Ensure the conf directory exists
