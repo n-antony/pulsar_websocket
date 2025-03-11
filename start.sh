@@ -18,13 +18,13 @@ echo "📂 PATH: $PATH"
 echo "📂 Current Working Directory: $(pwd)"
 
 # ✅ **Install OpenJDK 17 if not installed**
-if ! command -v java &> /dev/null; then
-    echo "📥 Installing OpenJDK 17..."
-    curl -LO "https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz"
-    tar -xzf jdk-17.0.12_linux-x64_bin.tar.gz
-    export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
-    export PATH="$JAVA_HOME/bin:$PATH"
-fi
+#if ! command -v java &> /dev/null; then
+#    echo "📥 Installing OpenJDK 17..."
+#    curl -LO "https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz"
+#    tar -xzf jdk-17.0.12_linux-x64_bin.tar.gz
+#    export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
+#    export PATH="$JAVA_HOME/bin:$PATH"
+#fi
 
 # ✅ **Verify Java Installation**
 echo "🛠️ Java Version:"
