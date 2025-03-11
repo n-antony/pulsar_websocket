@@ -37,7 +37,8 @@ if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
     echo "📥 Downloading and extracting Apache Pulsar..."
     curl -LO "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
     tar -xzf apache-pulsar-4.0.3-bin.tar.gz -C /opt/render/project/src/
-    # ✅ Fix: Ensure correct extracted folder name
+    
+    # ✅ Ensure correct extracted folder name
     if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
         mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
     fi
@@ -58,6 +59,25 @@ fi
 # Debug Pulsar directory
 echo "🛠️ Pulsar Directory Contents:"
 ls -l /opt/render/project/src/apache-pulsar-4.0.3
+
+# ✅ Print current working directory before running Pulsar
+echo "📂 Current Working Directory:"
+pwd
+
+# ✅ Print a directory tree (requires `tree` command)
+if command -v tree &> /dev/null; then
+    echo "📂 Directory Structure Before Pulsar Start:"
+    tree /opt/render/project/src/apache-pulsar-4.0.3
+else
+    echo "📂 (Tree command not installed, listing structure instead)"
+    find /opt/render/project/src/apache-pulsar-4.0.3 -print
+fi
+
+# ✅ Check if `bin/pulsar` exists before starting
+if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
+    echo "❌ ERROR: Pulsar binary not found! Exiting."
+    exit 1
+fi
 
 # Start Pulsar in standalone mode
 echo "🚀 Starting Pulsar in standalone mode..."
