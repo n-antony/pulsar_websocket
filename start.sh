@@ -44,7 +44,6 @@ fi
 echo "📥 Downloading Apache Pulsar..."
 curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
 
-# ✅ **Print file size of the downloaded Pulsar tar file**
 echo "📂 Pulsar Tar File Size:"
 ls -lh apache-pulsar-4.0.3-bin.tar.gz
 
@@ -78,10 +77,23 @@ if [ ! -d "$PULSAR_DIR/conf" ]; then
     mkdir -p "$PULSAR_DIR/conf"
 fi
 
-# ✅ **Copy the updated standalone configuration**
+# ✅ **Copy the standalone configuration if available**
 if [ -f "pulsar-config/standalone.conf" ]; then
     echo "⚙️ Updating Pulsar standalone configuration..."
     cp pulsar-config/standalone.conf "$PULSAR_DIR/conf/standalone.conf"
+fi
+
+# ✅ **Modify standalone.conf for WebSocket without TLS**
+if grep -q "webServicePort=" "$PULSAR_DIR/conf/standalone.conf"; then
+    sed -i 's/^webServicePort=.*/webServicePort=8080/' "$PULSAR_DIR/conf/standalone.conf"
+else
+    echo "webServicePort=8080" >> "$PULSAR_DIR/conf/standalone.conf"
+fi
+
+if grep -q "webSocketServicePort=" "$PULSAR_DIR/conf/standalone.conf"; then
+    sed -i 's/^webSocketServicePort=.*/webSocketServicePort=8081/' "$PULSAR_DIR/conf/standalone.conf"
+else
+    echo "webSocketServicePort=8081" >> "$PULSAR_DIR/conf/standalone.conf"
 fi
 
 # ✅ **Print extracted Pulsar directory contents**
@@ -97,16 +109,14 @@ else
     find "$PULSAR_DIR" -print
 fi
 
-# ✅ **Ensure SSL Certificates Exist**
-if [ ! -f "/etc/ssl/certs/render-cert.pem" ] || [ ! -f "/etc/ssl/private/render-key.pem" ]; then
-    echo "❌ ERROR: SSL Certificates Missing! Ensure they are configured correctly."
-    exit 1
-fi
-
-# ✅ **Start Pulsar with WebSocket Support**
-echo "🚀 Starting Pulsar with WebSocket Support..."
+# ✅ **Start Pulsar in standalone mode (No TLS)**
+echo "🚀 Starting Pulsar in standalone mode..."
 cd "$PULSAR_DIR"
+echo "📂 Moved to Pulsar directory: $(pwd)"
+
 ./bin/pulsar standalone --no-stream-storage &
+
+# ✅ **Wait for Pulsar to fully start**
 sleep 15
 
 # ✅ **Move back to the main project directory**
