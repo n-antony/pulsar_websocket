@@ -17,7 +17,7 @@ if ! command -v java &> /dev/null; then
     curl -LO "https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz"
     tar -xzf jdk-17.0.12_linux-x64_bin.tar.gz
 
-    # Corrected mv command to avoid nesting
+    # Ensure Java is moved only if it doesn't exist
     if [ ! -d "/opt/render/project/src/jdk-17.0.12" ]; then
         mv jdk-17.0.12 /opt/render/project/src/
     fi
@@ -27,7 +27,7 @@ if ! command -v java &> /dev/null; then
 fi
 
 # Download and extract Pulsar if not already available
-if [ ! -d "apache-pulsar-4.0.3" ]; then
+if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
     echo "📥 Downloading and extracting Apache Pulsar..."
     curl -LO "https://www.apache.org/dyn/closer.lua/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz?action=download"
     tar xzf apache-pulsar-4.0.3-bin.tar.gz
@@ -41,10 +41,16 @@ fi
 # Navigate to Pulsar directory
 cd /opt/render/project/src/apache-pulsar-4.0.3
 
-# Copy the updated standalone configuration if available
-if [ -f "/opt/render/project/src/pulsar-config/standalone.conf" ]; then
+# ✅ Ensure conf directory exists before copying
+if [ -d "conf" ]; then
     echo "⚙️ Using custom Pulsar standalone configuration..."
-    cp /opt/render/project/src/pulsar-config/standalone.conf conf/standalone.conf
+    if [ -f "/opt/render/project/src/pulsar-config/standalone.conf" ]; then
+        cp /opt/render/project/src/pulsar-config/standalone.conf conf/standalone.conf
+    else
+        echo "❌ Custom standalone.conf not found. Using default."
+    fi
+else
+    echo "❌ Pulsar conf directory missing!"
 fi
 
 # Start Pulsar in standalone mode
