@@ -1,4 +1,4 @@
-\#!/bin/bash
+#!/bin/bash
 
 set -e  # Exit script on error
 
@@ -42,7 +42,7 @@ fi
 
 # ✅ **Download Pulsar**
 echo "📥 Downloading Apache Pulsar..."
-curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
 
 # ✅ **Print file size of the downloaded Pulsar tar file**
 echo "📂 Pulsar Tar File Size:"
@@ -83,6 +83,26 @@ if [ -f "pulsar-config/standalone.conf" ]; then
     echo "⚙️ Updating Pulsar standalone configuration..."
     cp pulsar-config/standalone.conf "$PULSAR_DIR/conf/standalone.conf"
 fi
+
+# ✅ **Update standalone.conf dynamically**
+echo "🔧 Configuring Pulsar standalone mode..."
+cat > "$PULSAR_DIR/conf/standalone.conf" <<EOL
+allowAutoTenantCreation=true
+
+webServicePort=8080
+webServicePortTls=8081
+
+webSocketServiceEnabled=true
+webSocketServicePort=8090
+webSocketServicePortTls=8091
+
+brokerServicePort=6650
+brokerServicePortTls=6651
+
+metadataServiceUri=metadata-store:rocksdb:///opt/render/project/src/apache-pulsar-4.0.3/data/metadata
+
+advertisedAddress=0.0.0.0
+EOL
 
 # ✅ **Print extracted Pulsar directory contents**
 echo "🛠️ Pulsar Directory Contents:"
