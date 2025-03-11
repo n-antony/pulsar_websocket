@@ -19,6 +19,10 @@ echo "📂 Pulsar Directory: /opt/render/project/src/apache-pulsar-4.0.3"
 echo "📂 Standalone Config Path: /opt/render/project/src/pulsar-config/standalone.conf"
 echo "📂 Pulsar Producer Script: /opt/render/project/src/pulsar-producer.py"
 
+# Print Current Working Directory
+echo "📂 Current Working Directory:"
+pwd
+
 # Install OpenJDK 17 if not installed
 if ! command -v java &> /dev/null; then
     echo "📥 Installing OpenJDK 17..."
@@ -32,15 +36,30 @@ fi
 echo "🛠️ Java Version:"
 java -version
 
-# Download and extract Pulsar if not already available
+# Move to project directory
+cd /opt/render/project/src/
+echo "📂 Moved to project directory: $(pwd)"
+
+# ✅ Move and extract Pulsar correctly
 if [ ! -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
     echo "📥 Downloading and extracting Apache Pulsar..."
-    curl -o apache-pulsar.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
-    tar -xzf apache-pulsar.tar.gz -C /opt/render/project/src/
+    curl -o /opt/render/project/src/apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
     
-    # ✅ Ensure correct extracted folder name
+    # ✅ Extract Pulsar and validate binary presence
+    echo "📦 Extracting Pulsar..."
+    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
+    
+    # ✅ Ensure correct folder name
     if [ -d "/opt/render/project/src/apache-pulsar-4.0.3-bin" ]; then
         mv /opt/render/project/src/apache-pulsar-4.0.3-bin /opt/render/project/src/apache-pulsar-4.0.3
+    fi
+    
+    # ✅ Verify Pulsar Binary
+    if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
+        echo "❌ ERROR: Pulsar binary NOT found after extraction! Exiting..."
+        exit 1
+    else
+        echo "✅ Pulsar binary found: /opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar"
     fi
 fi
 
@@ -56,22 +75,15 @@ if [ -f "/opt/render/project/src/pulsar-config/standalone.conf" ]; then
     cp /opt/render/project/src/pulsar-config/standalone.conf /opt/render/project/src/apache-pulsar-4.0.3/conf/standalone.conf
 fi
 
-# Debug Pulsar directory
+# ✅ Debug Pulsar directory
 echo "🛠️ Pulsar Directory Contents:"
 ls -l /opt/render/project/src/apache-pulsar-4.0.3
-
-# ✅ Check if `bin/pulsar` exists before starting
-if [ ! -f "/opt/render/project/src/apache-pulsar-4.0.3/bin/pulsar" ]; then
-    echo "❌ ERROR: Pulsar binary not found! Listing Pulsar directory contents..."
-    ls -l /opt/render/project/src/apache-pulsar-4.0.3
-    exit 1
-fi
 
 # ✅ Print current working directory before running Pulsar
 echo "📂 Current Working Directory:"
 pwd
 
-# ✅ Print a directory tree (requires `tree` command)
+# ✅ Print directory structure before starting Pulsar
 if command -v tree &> /dev/null; then
     echo "📂 Directory Structure Before Pulsar Start:"
     tree /opt/render/project/src/apache-pulsar-4.0.3
@@ -80,9 +92,18 @@ else
     find /opt/render/project/src/apache-pulsar-4.0.3 -print
 fi
 
-# Start Pulsar in standalone mode
+# ✅ Start Pulsar in standalone mode
 echo "🚀 Starting Pulsar in standalone mode..."
 cd /opt/render/project/src/apache-pulsar-4.0.3
+echo "📂 Moved to Pulsar directory: $(pwd)"
+
+# ✅ Double-check that `bin/pulsar` exists before running
+if [ ! -f "bin/pulsar" ]; then
+    echo "❌ ERROR: Pulsar binary is missing in $(pwd)/bin/"
+    ls -l bin
+    exit 1
+fi
+
 ls -l bin  # ✅ Debug: Check if `bin` directory exists
 bin/pulsar standalone --no-stream-storage &
 
@@ -91,6 +112,7 @@ sleep 15
 
 # Move back to the main project directory
 cd /opt/render/project/src/
+echo "📂 Moved back to main project directory: $(pwd)"
 
 # Start the Pulsar producer script
 if [ -f "/opt/render/project/src/pulsar-producer.py" ]; then
