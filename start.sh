@@ -15,19 +15,13 @@ export PATH="$JAVA_HOME/bin:$PATH"
 echo "🔍 Debugging Paths:"
 echo "📂 JAVA_HOME: $JAVA_HOME"
 echo "📂 PATH: $PATH"
-echo "📂 Pulsar Directory: /opt/render/project/src/apache-pulsar-4.0.3"
-echo "📂 Standalone Config Path: /opt/render/project/src/pulsar-config/standalone.conf"
-echo "📂 Pulsar Producer Script: /opt/render/project/src/pulsar-producer.py"
-
-# Print Current Working Directory
-echo "📂 Current Working Directory:"
-pwd
+echo "📂 Current Working Directory: $(pwd)"
 
 # ✅ **Install OpenJDK 17 if not installed**
 if ! command -v java &> /dev/null; then
     echo "📥 Installing OpenJDK 17..."
     curl -LO "https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz"
-    tar -xzf jdk-17.0.12_linux-x64_bin.tar.gz -C /opt/render/project/src/
+    tar -xzf jdk-17.0.12_linux-x64_bin.tar.gz
     export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
     export PATH="$JAVA_HOME/bin:$PATH"
 fi
@@ -40,13 +34,13 @@ java -version
 cd /opt/render/project/src/
 echo "📂 Moved to project directory: $(pwd)"
 
-# ✅ **Check if Pulsar directory exists and DELETE IT before re-downloading**
-if [ -d "/opt/render/project/src/apache-pulsar-4.0.3" ]; then
+# ✅ **Delete existing Pulsar directory before re-downloading**
+if [ -d "apache-pulsar-4.0.3" ]; then
     echo "⚠️ Existing Pulsar directory found! Deleting it..."
-    rm -rf /opt/render/project/src/apache-pulsar-4.0.3
+    rm -rf apache-pulsar-4.0.3
 fi
 
-# ✅ **Download and Extract Pulsar**
+# ✅ **Download Pulsar**
 echo "📥 Downloading Apache Pulsar..."
 curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
 
@@ -54,75 +48,62 @@ curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/puls
 echo "📂 Pulsar Tar File Size:"
 ls -lh apache-pulsar-4.0.3-bin.tar.gz
 
-# ✅ **Extract the Pulsar tar file**
+# ✅ **Extract Pulsar in place**
 echo "📦 Extracting Pulsar..."
 tar -xzf apache-pulsar-4.0.3-bin.tar.gz
 
-# ✅ **Verify extraction by listing files**
-echo "📂 Listing files after Pulsar extraction:"
-ls -lh
+# ✅ **Detect Pulsar extraction folder**
+PULSAR_DIR=$(find . -maxdepth 1 -type d -name "apache-pulsar-*" | head -n 1)
 
-# ✅ **Check if extraction was successful**
-if [ ! -d "apache-pulsar-4.0.3" ]; then
-    if [ -d "apache-pulsar-4.0.3-bin" ]; then
-        echo "🔄 Renaming extracted folder..."
-        mv apache-pulsar-4.0.3-bin apache-pulsar-4.0.3
-    else
-        echo "❌ ERROR: Pulsar extraction failed. Exiting..."
-        exit 1
-    fi
-fi
-
-# ✅ **Verify Pulsar Binary Exists**
-if [ ! -f "apache-pulsar-4.0.3/bin/pulsar" ]; then
-    echo "❌ ERROR: Pulsar binary is still missing after extraction! Exiting..."
-    ls -l apache-pulsar-4.0.3/bin
+if [ ! -d "$PULSAR_DIR" ]; then
+    echo "❌ ERROR: Pulsar extraction failed. Exiting..."
     exit 1
 fi
 
+echo "📂 Pulsar extracted to: $PULSAR_DIR"
+
+# ✅ **Check if Pulsar `bin/pulsar` exists**
+if [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
+    echo "❌ ERROR: Pulsar binary is missing! Exiting..."
+    ls -l "$PULSAR_DIR/bin"
+    exit 1
+fi
+
+# ✅ **Ensure the binary is executable**
+chmod +x "$PULSAR_DIR/bin/pulsar"
+
 # ✅ **Ensure the conf directory exists**
-if [ ! -d "apache-pulsar-4.0.3/conf" ]; then
+if [ ! -d "$PULSAR_DIR/conf" ]; then
     echo "❌ Pulsar conf directory missing! Creating conf directory..."
-    mkdir -p apache-pulsar-4.0.3/conf
+    mkdir -p "$PULSAR_DIR/conf"
 fi
 
 # ✅ **Copy the standalone configuration if available**
 if [ -f "pulsar-config/standalone.conf" ]; then
     echo "⚙️ Updating Pulsar standalone configuration..."
-    cp pulsar-config/standalone.conf apache-pulsar-4.0.3/conf/standalone.conf
+    cp pulsar-config/standalone.conf "$PULSAR_DIR/conf/standalone.conf"
 fi
 
-# ✅ **Debug Pulsar directory**
+# ✅ **Print extracted Pulsar directory contents**
 echo "🛠️ Pulsar Directory Contents:"
-ls -l apache-pulsar-4.0.3
+ls -l "$PULSAR_DIR"
 
-# ✅ **Print current working directory before running Pulsar**
-echo "📂 Current Working Directory:"
-pwd
-
-# ✅ **Print directory structure before starting Pulsar**
+# ✅ **Print directory structure before running Pulsar**
 if command -v tree &> /dev/null; then
     echo "📂 Directory Structure Before Pulsar Start:"
-    tree apache-pulsar-4.0.3
+    tree "$PULSAR_DIR"
 else
     echo "📂 (Tree command not installed, listing structure instead)"
-    find apache-pulsar-4.0.3 -print
+    find "$PULSAR_DIR" -print
 fi
 
 # ✅ **Start Pulsar in standalone mode**
 echo "🚀 Starting Pulsar in standalone mode..."
-cd apache-pulsar-4.0.3
+cd "$PULSAR_DIR"
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
-# ✅ **Double-check that `bin/pulsar` exists before running**
-if [ ! -f "bin/pulsar" ]; then
-    echo "❌ ERROR: Pulsar binary is missing in $(pwd)/bin/"
-    ls -l bin
-    exit 1
-fi
-
-ls -l bin  # ✅ **Debug: Check if `bin` directory exists**
-bin/pulsar standalone --no-stream-storage &
+# ✅ **Start Pulsar**
+./bin/pulsar standalone --no-stream-storage &
 
 # ✅ **Wait for Pulsar to fully start**
 sleep 15
