@@ -99,58 +99,51 @@ if [ -f "pulsar-config/standalone.conf" ]; then
     cp pulsar-config/standalone.conf "$PULSAR_DIR/conf/standalone.conf"
 fi
 
-# ✅ **Modify standalone.conf to set clusterName**
-if grep -q "clusterName=" "$PULSAR_DIR/conf/standalone.conf"; then
-    sed -i 's/^clusterName=.*/clusterName=standalone-cluster/' "$PULSAR_DIR/conf/standalone.conf"
-else
-    echo "clusterName=standalone-cluster" >> "$PULSAR_DIR/conf/standalone.conf"
-fi
+CONFIG_FILE="$PULSAR_DIR/conf/standalone.conf"
 
-# ✅ **Set WebSocket and Web Service Ports**
-if grep -q "webServicePort=" "$PULSAR_DIR/conf/standalone.conf"; then
-    sed -i 's/^webServicePort=.*/webServicePort=8080/' "$PULSAR_DIR/conf/standalone.conf"
-else
-    echo "webServicePort=8080" >> "$PULSAR_DIR/conf/standalone.conf"
-fi
+# ✅ **Modify standalone.conf settings**
+declare -A CONFIG_VARS=(
+    ["clusterName"]="standalone-cluster"
+    ["webServicePort"]="8080"
+    ["webSocketServicePort"]="8081"
+    ["metadataStoreUrl"]="rocksdb://$PULSAR_DIR/data/metadata"
+    ["configurationMetadataStoreUrl"]="rocksdb://$PULSAR_DIR/data/metadata"
+)
 
-if grep -q "webSocketServicePort=" "$PULSAR_DIR/conf/standalone.conf"; then
-    sed -i 's/^webSocketServicePort=.*/webSocketServicePort=8081/' "$PULSAR_DIR/conf/standalone.conf"
-else
-    echo "webSocketServicePort=8081" >> "$PULSAR_DIR/conf/standalone.conf"
-fi
+for key in "${!CONFIG_VARS[@]}"; do
+    value=${CONFIG_VARS[$key]}
+    if grep -q "^$key=" "$CONFIG_FILE"; then
+        sed -i "s|^$key=.*|$key=$value|" "$CONFIG_FILE"
+    else
+        echo "$key=$value" >> "$CONFIG_FILE"
+    fi
+done
 
-# ✅ **Check if data directories exist**
-echo "🔍 Checking Data Directory Structure:"
-ls -l "$PULSAR_DIR/data" || echo "❌ No data directory found!"
-
-# ✅ **Ensure metadata storage exists**
-if [ -d "$PULSAR_DIR/data/metadata" ]; then
-    echo "✅ Metadata directory exists."
-else
+# ✅ **Ensure metadata directory exists**
+echo "🔍 Checking Metadata Directory Structure..."
+if [ ! -d "$PULSAR_DIR/data/metadata" ]; then
     echo "❌ Metadata directory missing! Creating..."
     mkdir -p "$PULSAR_DIR/data/metadata"
 fi
 
-# ✅ **Fix metadataStoreUrl format in standalone.conf**
-CONFIG_FILE="$PULSAR_DIR/conf/standalone.conf"
-
-# Check if incorrect format exists
-if grep -q "metadataStoreUrl=rocksdb:///" "$CONFIG_FILE"; then
-    echo "❌ Incorrect metadataStoreUrl format detected! Fixing..."
-    sed -i 's|metadataStoreUrl=rocksdb:///|metadataStoreUrl=rocksdb://data/metadata|' "$CONFIG_FILE"
-    sed -i 's|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=rocksdb://data/metadata|' "$CONFIG_FILE"
+# ✅ **Verify metadata paths**
+if grep -q "metadataStoreUrl=" "$CONFIG_FILE"; then
+    sed -i 's|metadataStoreUrl=rocksdb:///|metadataStoreUrl=rocksdb://'"$PULSAR_DIR"'/data/metadata|' "$CONFIG_FILE"
+    sed -i 's|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=rocksdb://'"$PULSAR_DIR"'/data/metadata|' "$CONFIG_FILE"
 fi
 
 echo "✅ Metadata store paths verified."
 
-# ✅ Set metadata store paths via environment variables
-export PULSAR_METADATA_STORE="rocksdb://$(pwd)/apache-pulsar-4.0.3/data/metadata"
-export PULSAR_CONFIG_METADATA_STORE="rocksdb://$(pwd)/apache-pulsar-4.0.3/data/metadata"
+# ✅ **Set environment variables**
+export PULSAR_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
+export PULSAR_CONFIG_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
 
 echo "🔍 PULSAR_METADATA_STORE: $PULSAR_METADATA_STORE"
 echo "🔍 PULSAR_CONFIG_METADATA_STORE: $PULSAR_CONFIG_METADATA_STORE"
 
-
+# ✅ **Wipe old data if any issues detected**
+echo "🛠 Cleaning previous standalone data..."
+rm -rf "$PULSAR_DIR/data/standalone"
 
 # ✅ **Start Pulsar in standalone mode**
 echo "🚀 Starting Pulsar in standalone mode..."
@@ -158,9 +151,6 @@ cd "$PULSAR_DIR"
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
 ./bin/pulsar standalone --wipe-data &
-#./bin/pulsar standalone --no-stream-storage &
-#./bin/pulsar standalone --metadata-store "$PULSAR_METADATA_STORE" --configuration-metadata-store "$PULSAR_CONFIG_METADATA_STORE" --no-stream-storage &
-
 
 # ✅ **Wait for Pulsar to fully start**
 sleep 15
