@@ -143,13 +143,23 @@ fi
 
 echo "✅ Metadata store paths verified."
 
+# ✅ Set metadata store paths via environment variables
+export PULSAR_METADATA_STORE="rocksdb://$(pwd)/apache-pulsar-4.0.3/data/metadata"
+export PULSAR_CONFIG_METADATA_STORE="rocksdb://$(pwd)/apache-pulsar-4.0.3/data/metadata"
+
+echo "🔍 PULSAR_METADATA_STORE: $PULSAR_METADATA_STORE"
+echo "🔍 PULSAR_CONFIG_METADATA_STORE: $PULSAR_CONFIG_METADATA_STORE"
+
+
 
 # ✅ **Start Pulsar in standalone mode**
 echo "🚀 Starting Pulsar in standalone mode..."
 cd "$PULSAR_DIR"
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
-./bin/pulsar standalone --no-stream-storage &
+#./bin/pulsar standalone --no-stream-storage &
+./bin/pulsar standalone --metadata-store "$PULSAR_METADATA_STORE" --configuration-metadata-store "$PULSAR_CONFIG_METADATA_STORE" --no-stream-storage &
+
 
 # ✅ **Wait for Pulsar to fully start**
 sleep 15
