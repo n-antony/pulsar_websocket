@@ -27,34 +27,30 @@ echo "📂 PATH: $PATH"
 echo "📂 PULSAR_DIR: $PULSAR_DIR"
 echo "📂 Current Working Directory: $(pwd)"
 
-# ✅ **Check if Pulsar is already extracted**
-if [ ! -d "$PULSAR_DIR" ]; then
-    echo "❌ Pulsar directory missing! Checking tarball..."
-    
-    # ✅ **Check if tarball exists**
+# ✅ **Ensure Pulsar is extracted properly**
+if [ ! -d "$PULSAR_DIR" ] || [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
+    echo "❌ Pulsar directory or binary missing! Re-extracting..."
+
+    # ✅ **Remove any partially extracted directory**
+    rm -rf "$PULSAR_DIR"
+
+    # ✅ **Ensure tarball is downloaded**
     if [ ! -f "apache-pulsar-4.0.3-bin.tar.gz" ]; then
         echo "📥 Tarball missing! Downloading Apache Pulsar..."
         curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
-    else
-        echo "✅ Tarball found, skipping download."
     fi
 
     echo "📦 Extracting Pulsar..."
     tar -xzf apache-pulsar-4.0.3-bin.tar.gz
 
-    # Verify extraction
-    if [ ! -d "$PULSAR_DIR/bin" ]; then
-        echo "❌ ERROR: Pulsar extraction failed! Exiting..."
+    # ✅ **Verify if extraction succeeded**
+    if [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
+        echo "❌ ERROR: Pulsar binary is still missing after extraction! Exiting..."
         exit 1
     fi
 fi
 
-# ✅ **Ensure Pulsar binary exists before continuing**
-if [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
-    echo "❌ ERROR: Pulsar binary is missing! Exiting..."
-    exit 1
-fi
-
+echo "✅ Pulsar successfully extracted."
 echo "📂 Pulsar detected at: $PULSAR_DIR"
 
 # ✅ **Ensure required directories exist**
@@ -118,7 +114,7 @@ echo "🚀 Starting Pulsar in standalone mode..."
 cd "$PULSAR_DIR"
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
-# Run Pulsar in the foreground so Render does not restart it
+# **Run Pulsar in the foreground so Render doesn’t restart it**
 ./bin/pulsar standalone --wipe-data
 
 # ✅ **Move back to the main project directory**
