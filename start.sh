@@ -34,30 +34,37 @@ java -version
 cd /opt/render/project/src/
 echo "📂 Moved to project directory: $(pwd)"
 
-# ✅ **Check if Pulsar is already installed**
-if [ ! -d "apache-pulsar-4.0.3" ]; then
+# ✅ **Check if Pulsar directory exists**
+if [ -d "apache-pulsar-4.0.3" ]; then
+    echo "✅ Pulsar directory found."
+else
     echo "📥 Downloading Apache Pulsar..."
     curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
     echo "📦 Extracting Pulsar..."
     tar -xzf apache-pulsar-4.0.3-bin.tar.gz
-else
-    echo "✅ Pulsar directory already exists, skipping download."
 fi
 
-# ✅ **Detect Pulsar directory**
-PULSAR_DIR=$(find . -maxdepth 1 -type d -name "apache-pulsar-*" | head -n 1)
+# ✅ **Set PULSAR_DIR explicitly**
+export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
 
 if [ ! -d "$PULSAR_DIR" ]; then
-    echo "❌ ERROR: Pulsar directory not found! Exiting..."
+    echo "❌ ERROR: Pulsar directory not found after extraction! Exiting..."
     exit 1
 fi
 
 echo "📂 Pulsar detected at: $PULSAR_DIR"
 
+# ✅ **Check if Pulsar `bin` directory is missing**
+if [ ! -d "$PULSAR_DIR/bin" ]; then
+    echo "❌ ERROR: Pulsar bin directory is missing! Re-extracting Pulsar..."
+    rm -rf "$PULSAR_DIR"
+    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
+fi
+
 # ✅ **Ensure the Pulsar `bin/pulsar` exists**
 if [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
     echo "❌ ERROR: Pulsar binary missing! Exiting..."
-    ls -l "$PULSAR_DIR/bin"
+    ls -l "$PULSAR_DIR/bin" || echo "❌ bin directory is missing!"
     exit 1
 fi
 
@@ -70,14 +77,6 @@ if [ -d "$PULSAR_DIR/data" ]; then
 else
     echo "❌ ERROR: Pulsar data directory is missing! Creating a new one..."
     mkdir -p "$PULSAR_DIR/data"
-fi
-
-# ✅ **Check if metadata directory exists**
-if [ -d "$PULSAR_DIR/data/metadata" ]; then
-    echo "✅ Metadata directory exists: $PULSAR_DIR/data/metadata"
-else
-    echo "❌ Metadata directory missing! Initializing new metadata storage..."
-    mkdir -p "$PULSAR_DIR/data/metadata"
 fi
 
 # ✅ **Ensure Pulsar has write permissions**
@@ -124,8 +123,12 @@ echo "🔍 Checking Data Directory Structure:"
 ls -l "$PULSAR_DIR/data"
 
 # ✅ **Check if metadata directory exists**
-echo "🔍 Checking Metadata Directory:"
-ls -l "$PULSAR_DIR/data/metadata"
+if [ -d "$PULSAR_DIR/data/metadata" ]; then
+    echo "✅ Metadata directory exists: $PULSAR_DIR/data/metadata"
+else
+    echo "❌ Metadata directory missing! Creating new metadata storage..."
+    mkdir -p "$PULSAR_DIR/data/metadata"
+fi
 
 # ✅ **Start Pulsar in standalone mode**
 echo "🚀 Starting Pulsar in standalone mode..."
