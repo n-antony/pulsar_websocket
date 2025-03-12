@@ -4,7 +4,7 @@ set -e  # Exit script on error
 
 echo "🚀 Starting Pulsar Deployment..."
 
-# ✅ **Set Java memory limits for Pulsar**
+# ✅ **Set Java memory limits**
 export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
 
 # ✅ **Ensure Java is Installed & Verified**
@@ -91,13 +91,22 @@ if [ -f "pulsar-config/standalone.conf" ]; then
     cp pulsar-config/standalone.conf "$CONFIG_FILE"
 fi
 
+# ✅ **Fix metadataStoreUrl Formatting Safely**
+echo "🛠 Fixing metadataStoreUrl format..."
+
+# Remove any existing incorrect lines to prevent duplication
+sed -i '/^metadataStoreUrl=/d' "$CONFIG_FILE"
+sed -i '/^configurationMetadataStoreUrl=/d' "$CONFIG_FILE"
+
+# Add correct lines at the end
+echo "metadataStoreUrl=$PULSAR_METADATA_STORE" >> "$CONFIG_FILE"
+echo "configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE" >> "$CONFIG_FILE"
+
 # ✅ **Modify standalone.conf settings**
 declare -A CONFIG_VARS=(
     ["clusterName"]="standalone-cluster"
     ["webServicePort"]="8080"
     ["webSocketServicePort"]="8081"
-    ["metadataStoreUrl"]="$PULSAR_METADATA_STORE"
-    ["configurationMetadataStoreUrl"]="$PULSAR_CONFIG_METADATA_STORE"
 )
 
 for key in "${!CONFIG_VARS[@]}"; do
@@ -109,23 +118,11 @@ for key in "${!CONFIG_VARS[@]}"; do
     fi
 done
 
-# ✅ **Verify metadata paths**
-if grep -q "metadataStoreUrl=rocksdb:///" "$CONFIG_FILE"; then
-    echo "❌ Incorrect metadataStoreUrl format detected! Fixing..."
-    sed -i "s|metadataStoreUrl=rocksdb:///|metadataStoreUrl=$PULSAR_METADATA_STORE|" "$CONFIG_FILE"
-    sed -i "s|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE|" "$CONFIG_FILE"
-fi
-
 echo "✅ Metadata store paths verified."
 
 # ✅ **Wipe old data if any issues detected**
 echo "🛠 Cleaning previous standalone data..."
 rm -rf "$PULSAR_DIR/data/standalone"
-
-# ✅ **Start Pulsar in standalone mode**
-echo "🚀 Starting Pulsar in standalone mode..."
-cd "$PULSAR_DIR"
-echo "📂 Moved to Pulsar directory: $(pwd)"
 
 # ✅ **Ensure Java Version is Correct for Pulsar**
 JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
@@ -133,6 +130,11 @@ if [[ "$JAVA_VERSION" < "17" ]]; then
     echo "❌ ERROR: Pulsar requires Java 17 or later! Detected: Java $JAVA_VERSION"
     exit 1
 fi
+
+# ✅ **Start Pulsar in standalone mode**
+echo "🚀 Starting Pulsar in standalone mode..."
+cd "$PULSAR_DIR"
+echo "📂 Moved to Pulsar directory: $(pwd)"
 
 # ✅ **Run Pulsar in the foreground to prevent Render restarts**
 ./bin/pulsar standalone --wipe-data
