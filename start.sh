@@ -34,55 +34,57 @@ java -version
 cd /opt/render/project/src/
 echo "📂 Moved to project directory: $(pwd)"
 
-# ✅ **Check if Pulsar directory exists**
-if [ -d "apache-pulsar-4.0.3" ]; then
+# ✅ **Set Pulsar directory variable**
+export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
+
+# ✅ **Check if Pulsar is already extracted**
+if [ -d "$PULSAR_DIR" ]; then
     echo "✅ Pulsar directory found."
 else
-    echo "📥 Downloading Apache Pulsar..."
-    curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+    echo "❌ Pulsar directory missing! Checking tarball..."
+    
+    # ✅ **Check if tarball exists**
+    if [ ! -f "apache-pulsar-4.0.3-bin.tar.gz" ]; then
+        echo "📥 Tarball missing! Downloading Apache Pulsar..."
+        curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+    else
+        echo "✅ Tarball found, skipping download."
+    fi
+
     echo "📦 Extracting Pulsar..."
     tar -xzf apache-pulsar-4.0.3-bin.tar.gz
 fi
 
-# ✅ **Set PULSAR_DIR explicitly**
-export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
+# ✅ **Ensure Pulsar `bin` directory exists**
+if [ ! -d "$PULSAR_DIR/bin" ]; then
+    echo "❌ ERROR: Pulsar bin directory is missing! Re-extracting Pulsar..."
+    rm -rf "$PULSAR_DIR"
 
-if [ ! -d "$PULSAR_DIR" ]; then
-    echo "❌ ERROR: Pulsar directory not found after extraction! Exiting..."
-    exit 1
+    echo "📥 Checking for Pulsar tarball..."
+    if [ ! -f "apache-pulsar-4.0.3-bin.tar.gz" ]; then
+        echo "📥 Tarball missing! Re-downloading..."
+        curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+    fi
+
+    echo "📦 Extracting Pulsar again..."
+    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
+
+    # Check if extraction succeeded
+    if [ ! -d "$PULSAR_DIR/bin" ]; then
+        echo "❌ ERROR: Pulsar bin directory is still missing after extraction! Exiting..."
+        exit 1
+    fi
 fi
 
 echo "📂 Pulsar detected at: $PULSAR_DIR"
 
-# ✅ **Check if Pulsar `bin` directory is missing**
-if [ ! -d "$PULSAR_DIR/bin" ]; then
-    echo "❌ ERROR: Pulsar bin directory is missing! Re-extracting Pulsar..."
-    rm -rf "$PULSAR_DIR"
-    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
-fi
-
-# ✅ **Ensure the Pulsar `bin/pulsar` exists**
-if [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
-    echo "❌ ERROR: Pulsar binary missing! Exiting..."
-    ls -l "$PULSAR_DIR/bin" || echo "❌ bin directory is missing!"
-    exit 1
-fi
-
 # ✅ **Ensure the binary is executable**
 chmod +x "$PULSAR_DIR/bin/pulsar"
-
-# ✅ **Preserve the `data` directory to prevent metadata loss**
-if [ -d "$PULSAR_DIR/data" ]; then
-    echo "🛠️ Pulsar data directory exists, preserving it..."
-else
-    echo "❌ ERROR: Pulsar data directory is missing! Creating a new one..."
-    mkdir -p "$PULSAR_DIR/data"
-fi
 
 # ✅ **Ensure Pulsar has write permissions**
 chmod -R 777 "$PULSAR_DIR/data"
 
-# ✅ **Ensure the conf directory exists**
+# ✅ **Ensure Pulsar conf directory exists**
 if [ ! -d "$PULSAR_DIR/conf" ]; then
     echo "❌ ERROR: Pulsar conf directory missing! Creating conf directory..."
     mkdir -p "$PULSAR_DIR/conf"
@@ -114,19 +116,15 @@ else
     echo "webSocketServicePort=8081" >> "$PULSAR_DIR/conf/standalone.conf"
 fi
 
-# ✅ **Print extracted Pulsar directory contents**
-echo "🛠️ Pulsar Directory Contents:"
-ls -l "$PULSAR_DIR"
-
 # ✅ **Check if data directories exist**
 echo "🔍 Checking Data Directory Structure:"
-ls -l "$PULSAR_DIR/data"
+ls -l "$PULSAR_DIR/data" || echo "❌ No data directory found!"
 
-# ✅ **Check if metadata directory exists**
+# ✅ **Ensure metadata storage exists**
 if [ -d "$PULSAR_DIR/data/metadata" ]; then
-    echo "✅ Metadata directory exists: $PULSAR_DIR/data/metadata"
+    echo "✅ Metadata directory exists."
 else
-    echo "❌ Metadata directory missing! Creating new metadata storage..."
+    echo "❌ Metadata directory missing! Creating..."
     mkdir -p "$PULSAR_DIR/data/metadata"
 fi
 
