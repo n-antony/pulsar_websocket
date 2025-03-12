@@ -4,10 +4,23 @@ set -e  # Exit script on error
 
 echo "🚀 Starting Pulsar Deployment..."
 
-# Set Java memory limits for Pulsar
+# ✅ **Set Java memory limits for Pulsar**
 export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
 
-# Set Java Home and PATH
+# ✅ **Ensure Java is Installed & Verified**
+if ! command -v java &> /dev/null; then
+    echo "📥 Installing OpenJDK 17..."
+    curl -LO "https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz"
+    tar -xzf jdk-17.0.12_linux-x64_bin.tar.gz
+    export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
+    export PATH="$JAVA_HOME/bin:$PATH"
+fi
+
+# ✅ **Verify Java Installation**
+echo "🛠️ Java Version:"
+java -version || { echo "❌ ERROR: Java installation failed! Exiting..."; exit 1; }
+
+# ✅ **Set Java Home and PATH**
 export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
 export PATH="$JAVA_HOME/bin:$PATH"
 
@@ -15,26 +28,26 @@ export PATH="$JAVA_HOME/bin:$PATH"
 cd /opt/render/project/src/
 echo "📂 Moved to project directory: $(pwd)"
 
-# ✅ **Set Pulsar directory variable**
+# ✅ **Set Pulsar directory variables**
 export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
 export PULSAR_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
 export PULSAR_CONFIG_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
 
-# Debugging Paths
+# ✅ **Debugging Paths**
 echo "🔍 Debugging Paths:"
 echo "📂 JAVA_HOME: $JAVA_HOME"
 echo "📂 PATH: $PATH"
 echo "📂 PULSAR_DIR: $PULSAR_DIR"
 echo "📂 Current Working Directory: $(pwd)"
 
-# ✅ **Ensure Pulsar is extracted properly**
+# ✅ **Ensure Pulsar is properly extracted**
 if [ ! -d "$PULSAR_DIR" ] || [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
     echo "❌ Pulsar directory or binary missing! Re-extracting..."
 
-    # ✅ **Remove any partially extracted directory**
+    # ✅ **Remove any incomplete Pulsar directory**
     rm -rf "$PULSAR_DIR"
 
-    # ✅ **Ensure tarball is downloaded**
+    # ✅ **Ensure Pulsar tarball is downloaded**
     if [ ! -f "apache-pulsar-4.0.3-bin.tar.gz" ]; then
         echo "📥 Tarball missing! Downloading Apache Pulsar..."
         curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
@@ -70,7 +83,7 @@ if [ ! -d "$PULSAR_DIR/conf" ]; then
     mkdir -p "$PULSAR_DIR/conf"
 fi
 
-# ✅ **Copy the standalone configuration if available**
+# ✅ **Copy standalone configuration if available**
 CONFIG_FILE="$PULSAR_DIR/conf/standalone.conf"
 
 if [ -f "pulsar-config/standalone.conf" ]; then
@@ -114,7 +127,14 @@ echo "🚀 Starting Pulsar in standalone mode..."
 cd "$PULSAR_DIR"
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
-# **Run Pulsar in the foreground so Render doesn’t restart it**
+# ✅ **Ensure Java Version is Correct for Pulsar**
+JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+if [[ "$JAVA_VERSION" < "17" ]]; then
+    echo "❌ ERROR: Pulsar requires Java 17 or later! Detected: Java $JAVA_VERSION"
+    exit 1
+fi
+
+# ✅ **Run Pulsar in the foreground to prevent Render restarts**
 ./bin/pulsar standalone --wipe-data
 
 # ✅ **Move back to the main project directory**
@@ -129,6 +149,6 @@ else
     echo "❌ Pulsar Producer script not found!"
 fi
 
-# ✅ **Keep script running to prevent Render from restarting**
+# ✅ **Prevent Render from restarting**
 echo "🛠 Keeping container running to avoid restart..."
 tail -f /dev/null
