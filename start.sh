@@ -78,8 +78,11 @@ fi
 
 echo "📂 Pulsar detected at: $PULSAR_DIR"
 
-# ✅ **Ensure the binary is executable**
-chmod +x "$PULSAR_DIR/bin/pulsar"
+# ✅ **Ensure the `data/` directory exists before setting permissions**
+if [ ! -d "$PULSAR_DIR/data" ]; then
+    echo "❌ Data directory missing! Creating..."
+    mkdir -p "$PULSAR_DIR/data"
+fi
 
 # ✅ **Ensure Pulsar has write permissions**
 chmod -R 777 "$PULSAR_DIR/data"
