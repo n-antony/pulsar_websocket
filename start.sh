@@ -11,10 +11,12 @@ export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
 export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
 export PATH="$JAVA_HOME/bin:$PATH"
 
+# ✅ **Move to project directory**
+cd /opt/render/project/src/
+echo "📂 Moved to project directory: $(pwd)"
+
 # ✅ **Set Pulsar directory variable**
 export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
-
-# ✅ **Ensure absolute paths are correctly set**
 export PULSAR_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
 export PULSAR_CONFIG_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
 
@@ -23,10 +25,39 @@ echo "🔍 Debugging Paths:"
 echo "📂 JAVA_HOME: $JAVA_HOME"
 echo "📂 PATH: $PATH"
 echo "📂 PULSAR_DIR: $PULSAR_DIR"
-echo "📂 PULSAR_METADATA_STORE: $PULSAR_METADATA_STORE"
 echo "📂 Current Working Directory: $(pwd)"
 
-# ✅ **Ensure Pulsar directories exist**
+# ✅ **Check if Pulsar is already extracted**
+if [ ! -d "$PULSAR_DIR" ]; then
+    echo "❌ Pulsar directory missing! Checking tarball..."
+    
+    # ✅ **Check if tarball exists**
+    if [ ! -f "apache-pulsar-4.0.3-bin.tar.gz" ]; then
+        echo "📥 Tarball missing! Downloading Apache Pulsar..."
+        curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
+    else
+        echo "✅ Tarball found, skipping download."
+    fi
+
+    echo "📦 Extracting Pulsar..."
+    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
+
+    # Verify extraction
+    if [ ! -d "$PULSAR_DIR/bin" ]; then
+        echo "❌ ERROR: Pulsar extraction failed! Exiting..."
+        exit 1
+    fi
+fi
+
+# ✅ **Ensure Pulsar binary exists before continuing**
+if [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
+    echo "❌ ERROR: Pulsar binary is missing! Exiting..."
+    exit 1
+fi
+
+echo "📂 Pulsar detected at: $PULSAR_DIR"
+
+# ✅ **Ensure required directories exist**
 for dir in "$PULSAR_DIR/data" "$PULSAR_DIR/data/metadata"; do
     if [ ! -d "$dir" ]; then
         echo "❌ $dir missing! Creating..."
@@ -39,7 +70,7 @@ chmod -R 777 "$PULSAR_DIR/data"
 
 # ✅ **Ensure Pulsar conf directory exists**
 if [ ! -d "$PULSAR_DIR/conf" ]; then
-    echo "❌ ERROR: Pulsar conf directory missing! Creating conf directory..."
+    echo "❌ ERROR: Pulsar conf directory missing! Creating..."
     mkdir -p "$PULSAR_DIR/conf"
 fi
 
@@ -51,17 +82,7 @@ if [ -f "pulsar-config/standalone.conf" ]; then
     cp pulsar-config/standalone.conf "$CONFIG_FILE"
 fi
 
-# ✅ **Fix metadataStoreUrl format safely**
-if grep -q "metadataStoreUrl=" "$CONFIG_FILE"; then
-    echo "🛠 Fixing metadataStoreUrl format..."
-    sed -i "s|metadataStoreUrl=.*|metadataStoreUrl=$PULSAR_METADATA_STORE|" "$CONFIG_FILE"
-    sed -i "s|configurationMetadataStoreUrl=.*|configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE|" "$CONFIG_FILE"
-else
-    echo "metadataStoreUrl=$PULSAR_METADATA_STORE" >> "$CONFIG_FILE"
-    echo "configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE" >> "$CONFIG_FILE"
-fi
-
-# ✅ **Modify standalone.conf settings (ensuring no duplication)**
+# ✅ **Modify standalone.conf settings**
 declare -A CONFIG_VARS=(
     ["clusterName"]="standalone-cluster"
     ["webServicePort"]="8080"
@@ -79,22 +100,39 @@ for key in "${!CONFIG_VARS[@]}"; do
     fi
 done
 
+# ✅ **Verify metadata paths**
+if grep -q "metadataStoreUrl=rocksdb:///" "$CONFIG_FILE"; then
+    echo "❌ Incorrect metadataStoreUrl format detected! Fixing..."
+    sed -i "s|metadataStoreUrl=rocksdb:///|metadataStoreUrl=$PULSAR_METADATA_STORE|" "$CONFIG_FILE"
+    sed -i "s|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE|" "$CONFIG_FILE"
+fi
+
 echo "✅ Metadata store paths verified."
 
 # ✅ **Wipe old data if any issues detected**
 echo "🛠 Cleaning previous standalone data..."
 rm -rf "$PULSAR_DIR/data/standalone"
 
-# ✅ **Verify Pulsar bin directory exists**
-if [ ! -f "$PULSAR_DIR/bin/pulsar" ]; then
-    echo "❌ ERROR: Pulsar binary is missing! Exiting..."
-    exit 1
-fi
-
-# ✅ **Start Pulsar in standalone mode (Foreground Mode)**
+# ✅ **Start Pulsar in standalone mode**
 echo "🚀 Starting Pulsar in standalone mode..."
 cd "$PULSAR_DIR"
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
-# Run Pulsar in the foreground (fixes Render's auto-restart issue)
-exec ./bin/pulsar standalone --wipe-data
+# Run Pulsar in the foreground so Render does not restart it
+./bin/pulsar standalone --wipe-data
+
+# ✅ **Move back to the main project directory**
+cd /opt/render/project/src/
+echo "📂 Moved back to main project directory: $(pwd)"
+
+# ✅ **Start the Pulsar producer script**
+if [ -f "pulsar-producer.py" ]; then
+    echo "📡 Starting Pulsar Producer..."
+    python3 pulsar-producer.py &
+else
+    echo "❌ Pulsar Producer script not found!"
+fi
+
+# ✅ **Keep script running to prevent Render from restarting**
+echo "🛠 Keeping container running to avoid restart..."
+tail -f /dev/null
