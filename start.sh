@@ -11,12 +11,10 @@ export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
 export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
 export PATH="$JAVA_HOME/bin:$PATH"
 
-# ✅ **Move to project directory**
-cd /opt/render/project/src/
-echo "📂 Moved to project directory: $(pwd)"
-
 # ✅ **Set Pulsar directory variable**
 export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
+
+# ✅ **Ensure absolute paths are correctly set**
 export PULSAR_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
 export PULSAR_CONFIG_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
 
@@ -25,63 +23,10 @@ echo "🔍 Debugging Paths:"
 echo "📂 JAVA_HOME: $JAVA_HOME"
 echo "📂 PATH: $PATH"
 echo "📂 PULSAR_DIR: $PULSAR_DIR"
+echo "📂 PULSAR_METADATA_STORE: $PULSAR_METADATA_STORE"
 echo "📂 Current Working Directory: $(pwd)"
 
-# ✅ **Install OpenJDK 17 if not installed**
-if ! command -v java &> /dev/null; then
-    echo "📥 Installing OpenJDK 17..."
-    curl -LO "https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz"
-    tar -xzf jdk-17.0.12_linux-x64_bin.tar.gz
-    export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
-    export PATH="$JAVA_HOME/bin:$PATH"
-fi
-
-# ✅ **Verify Java Installation**
-echo "🛠️ Java Version:"
-java -version
-
-# ✅ **Check if Pulsar is already extracted**
-if [ -d "$PULSAR_DIR" ]; then
-    echo "✅ Pulsar directory found."
-else
-    echo "❌ Pulsar directory missing! Checking tarball..."
-    
-    # ✅ **Check if tarball exists**
-    if [ ! -f "apache-pulsar-4.0.3-bin.tar.gz" ]; then
-        echo "📥 Tarball missing! Downloading Apache Pulsar..."
-        curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
-    else
-        echo "✅ Tarball found, skipping download."
-    fi
-
-    echo "📦 Extracting Pulsar..."
-    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
-fi
-
-# ✅ **Ensure Pulsar `bin` directory exists**
-if [ ! -d "$PULSAR_DIR/bin" ]; then
-    echo "❌ ERROR: Pulsar bin directory is missing! Re-extracting Pulsar..."
-    rm -rf "$PULSAR_DIR"
-
-    echo "📥 Checking for Pulsar tarball..."
-    if [ ! -f "apache-pulsar-4.0.3-bin.tar.gz" ]; then
-        echo "📥 Tarball missing! Re-downloading..."
-        curl -o apache-pulsar-4.0.3-bin.tar.gz "https://downloads.apache.org/pulsar/pulsar-4.0.3/apache-pulsar-4.0.3-bin.tar.gz"
-    fi
-
-    echo "📦 Extracting Pulsar again..."
-    tar -xzf apache-pulsar-4.0.3-bin.tar.gz
-
-    # Check if extraction succeeded
-    if [ ! -d "$PULSAR_DIR/bin" ]; then
-        echo "❌ ERROR: Pulsar bin directory is still missing after extraction! Exiting..."
-        exit 1
-    fi
-fi
-
-echo "📂 Pulsar detected at: $PULSAR_DIR"
-
-# ✅ **Ensure data directories exist**
+# ✅ **Ensure Pulsar directories exist**
 for dir in "$PULSAR_DIR/data" "$PULSAR_DIR/data/metadata"; do
     if [ ! -d "$dir" ]; then
         echo "❌ $dir missing! Creating..."
@@ -106,7 +51,17 @@ if [ -f "pulsar-config/standalone.conf" ]; then
     cp pulsar-config/standalone.conf "$CONFIG_FILE"
 fi
 
-# ✅ **Modify standalone.conf settings**
+# ✅ **Fix metadataStoreUrl format safely**
+if grep -q "metadataStoreUrl=" "$CONFIG_FILE"; then
+    echo "🛠 Fixing metadataStoreUrl format..."
+    sed -i "s|metadataStoreUrl=.*|metadataStoreUrl=$PULSAR_METADATA_STORE|" "$CONFIG_FILE"
+    sed -i "s|configurationMetadataStoreUrl=.*|configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE|" "$CONFIG_FILE"
+else
+    echo "metadataStoreUrl=$PULSAR_METADATA_STORE" >> "$CONFIG_FILE"
+    echo "configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE" >> "$CONFIG_FILE"
+fi
+
+# ✅ **Modify standalone.conf settings (ensuring no duplication)**
 declare -A CONFIG_VARS=(
     ["clusterName"]="standalone-cluster"
     ["webServicePort"]="8080"
@@ -123,13 +78,6 @@ for key in "${!CONFIG_VARS[@]}"; do
         echo "$key=$value" >> "$CONFIG_FILE"
     fi
 done
-
-# ✅ **Verify metadata paths**
-if grep -q "metadataStoreUrl=rocksdb:///" "$CONFIG_FILE"; then
-    echo "❌ Incorrect metadataStoreUrl format detected! Fixing..."
-    sed -i "s|metadataStoreUrl=rocksdb:///|metadataStoreUrl=$PULSAR_METADATA_STORE|" "$CONFIG_FILE"
-    sed -i "s|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE|" "$CONFIG_FILE"
-fi
 
 echo "✅ Metadata store paths verified."
 
