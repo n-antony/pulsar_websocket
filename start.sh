@@ -157,7 +157,7 @@ echo "🚀 Starting Pulsar in standalone mode..."
 cd "$PULSAR_DIR"
 echo "📂 Moved to Pulsar directory: $(pwd)"
 
-./bin/pulsar standalone --only-broker --no-broker-state &
+./bin/pulsar standalone --only-broker --no-stream-storage &
 #./bin/pulsar standalone --no-stream-storage &
 #./bin/pulsar standalone --metadata-store "$PULSAR_METADATA_STORE" --configuration-metadata-store "$PULSAR_CONFIG_METADATA_STORE" --no-stream-storage &
 
