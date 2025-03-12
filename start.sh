@@ -131,6 +131,19 @@ else
     mkdir -p "$PULSAR_DIR/data/metadata"
 fi
 
+# ✅ **Fix metadataStoreUrl format in standalone.conf**
+CONFIG_FILE="$PULSAR_DIR/conf/standalone.conf"
+
+# Check if incorrect format exists
+if grep -q "metadataStoreUrl=rocksdb:///" "$CONFIG_FILE"; then
+    echo "❌ Incorrect metadataStoreUrl format detected! Fixing..."
+    sed -i 's|metadataStoreUrl=rocksdb:///|metadataStoreUrl=rocksdb://data/metadata|' "$CONFIG_FILE"
+    sed -i 's|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=rocksdb://data/metadata|' "$CONFIG_FILE"
+fi
+
+echo "✅ Metadata store paths verified."
+
+
 # ✅ **Start Pulsar in standalone mode**
 echo "🚀 Starting Pulsar in standalone mode..."
 cd "$PULSAR_DIR"
