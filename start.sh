@@ -11,10 +11,20 @@ export PULSAR_MEM="-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=1024m"
 export JAVA_HOME="/opt/render/project/src/jdk-17.0.12"
 export PATH="$JAVA_HOME/bin:$PATH"
 
+# ✅ **Move to project directory**
+cd /opt/render/project/src/
+echo "📂 Moved to project directory: $(pwd)"
+
+# ✅ **Set Pulsar directory variable**
+export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
+export PULSAR_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
+export PULSAR_CONFIG_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
+
 # Debugging Paths
 echo "🔍 Debugging Paths:"
 echo "📂 JAVA_HOME: $JAVA_HOME"
 echo "📂 PATH: $PATH"
+echo "📂 PULSAR_DIR: $PULSAR_DIR"
 echo "📂 Current Working Directory: $(pwd)"
 
 # ✅ **Install OpenJDK 17 if not installed**
@@ -29,13 +39,6 @@ fi
 # ✅ **Verify Java Installation**
 echo "🛠️ Java Version:"
 java -version
-
-# ✅ **Move to project directory**
-cd /opt/render/project/src/
-echo "📂 Moved to project directory: $(pwd)"
-
-# ✅ **Set Pulsar directory variable**
-export PULSAR_DIR="/opt/render/project/src/apache-pulsar-4.0.3"
 
 # ✅ **Check if Pulsar is already extracted**
 if [ -d "$PULSAR_DIR" ]; then
@@ -78,11 +81,13 @@ fi
 
 echo "📂 Pulsar detected at: $PULSAR_DIR"
 
-# ✅ **Ensure the `data/` directory exists before setting permissions**
-if [ ! -d "$PULSAR_DIR/data" ]; then
-    echo "❌ Data directory missing! Creating..."
-    mkdir -p "$PULSAR_DIR/data"
-fi
+# ✅ **Ensure data directories exist**
+for dir in "$PULSAR_DIR/data" "$PULSAR_DIR/data/metadata"; do
+    if [ ! -d "$dir" ]; then
+        echo "❌ $dir missing! Creating..."
+        mkdir -p "$dir"
+    fi
+done
 
 # ✅ **Ensure Pulsar has write permissions**
 chmod -R 777 "$PULSAR_DIR/data"
@@ -94,20 +99,20 @@ if [ ! -d "$PULSAR_DIR/conf" ]; then
 fi
 
 # ✅ **Copy the standalone configuration if available**
+CONFIG_FILE="$PULSAR_DIR/conf/standalone.conf"
+
 if [ -f "pulsar-config/standalone.conf" ]; then
     echo "⚙️ Updating Pulsar standalone configuration..."
-    cp pulsar-config/standalone.conf "$PULSAR_DIR/conf/standalone.conf"
+    cp pulsar-config/standalone.conf "$CONFIG_FILE"
 fi
-
-CONFIG_FILE="$PULSAR_DIR/conf/standalone.conf"
 
 # ✅ **Modify standalone.conf settings**
 declare -A CONFIG_VARS=(
     ["clusterName"]="standalone-cluster"
     ["webServicePort"]="8080"
     ["webSocketServicePort"]="8081"
-    ["metadataStoreUrl"]="rocksdb://$PULSAR_DIR/data/metadata"
-    ["configurationMetadataStoreUrl"]="rocksdb://$PULSAR_DIR/data/metadata"
+    ["metadataStoreUrl"]="$PULSAR_METADATA_STORE"
+    ["configurationMetadataStoreUrl"]="$PULSAR_CONFIG_METADATA_STORE"
 )
 
 for key in "${!CONFIG_VARS[@]}"; do
@@ -119,27 +124,14 @@ for key in "${!CONFIG_VARS[@]}"; do
     fi
 done
 
-# ✅ **Ensure metadata directory exists**
-echo "🔍 Checking Metadata Directory Structure..."
-if [ ! -d "$PULSAR_DIR/data/metadata" ]; then
-    echo "❌ Metadata directory missing! Creating..."
-    mkdir -p "$PULSAR_DIR/data/metadata"
-fi
-
 # ✅ **Verify metadata paths**
-if grep -q "metadataStoreUrl=" "$CONFIG_FILE"; then
-    sed -i 's|metadataStoreUrl=rocksdb:///|metadataStoreUrl=rocksdb://'"$PULSAR_DIR"'/data/metadata|' "$CONFIG_FILE"
-    sed -i 's|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=rocksdb://'"$PULSAR_DIR"'/data/metadata|' "$CONFIG_FILE"
+if grep -q "metadataStoreUrl=rocksdb:///" "$CONFIG_FILE"; then
+    echo "❌ Incorrect metadataStoreUrl format detected! Fixing..."
+    sed -i "s|metadataStoreUrl=rocksdb:///|metadataStoreUrl=$PULSAR_METADATA_STORE|" "$CONFIG_FILE"
+    sed -i "s|configurationMetadataStoreUrl=rocksdb:///|configurationMetadataStoreUrl=$PULSAR_CONFIG_METADATA_STORE|" "$CONFIG_FILE"
 fi
 
 echo "✅ Metadata store paths verified."
-
-# ✅ **Set environment variables**
-export PULSAR_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
-export PULSAR_CONFIG_METADATA_STORE="rocksdb://$PULSAR_DIR/data/metadata"
-
-echo "🔍 PULSAR_METADATA_STORE: $PULSAR_METADATA_STORE"
-echo "🔍 PULSAR_CONFIG_METADATA_STORE: $PULSAR_CONFIG_METADATA_STORE"
 
 # ✅ **Wipe old data if any issues detected**
 echo "🛠 Cleaning previous standalone data..."
